@@ -1,7 +1,7 @@
 /* 
  * Project: Key fob for SafeChild Care Seat Monitor
  * Author: Jon Phillips
- * Last Updated: 28 November 2023
+ * Last Updated: 30 November 2023
  */
 
 
@@ -21,7 +21,7 @@ BleScanResult scanResults[SCAN_RESULT_MAX];
 BleCharacteristic peerRxCharacteristic;
 BleCharacteristic peerTxCharacteristic;
 BlePeerDevice peer;
-
+void bleConnect();
 void onDataReceived(const uint8_t *data, size_t len, const BlePeerDevice &peer, void *context);
 BleCharacteristic rxCharacteristic ("rx",BleCharacteristicProperty::WRITE_WO_RSP,rxUuid,serviceUuid,onDataReceived,NULL);
 uint8_t i;
@@ -53,16 +53,10 @@ void setup() {
 
 void loop() {   
 
-    count = BLE.scan(scanResults, SCAN_RESULT_MAX);
-    if(count > 0){
-        for( i = 0; i < count; i++){
-        BleUuid foundServiceUuid;
-        size_t svcCount = scanResults[i].advertisingData().serviceUUID(&foundServiceUuid,1);
-            if(svcCount > 0 && foundServiceUuid == txUuid){
-                RSSI = scanResults[i].rssi();
-              
-                peer = BLE.connect(scanResults[i].address());        
-                if(peer.connected()){
+    bleConnect();
+
+       
+                while(peer.connected()){
                     pixel.setBrightness(40);
                     pixel.setPixelColor(0,0x0000ff);
                     pixel.show();
@@ -72,7 +66,7 @@ void loop() {
                     
                 }
 
-                if(!peer.connected()){
+                while(!peer.connected()){
                     if(lastBuckleCheck){
                         pixel.setBrightness(100);
                         pixel.setPixelColor(0,0xff0000);
@@ -89,10 +83,10 @@ void loop() {
                         pixel.setPixelColor(0,0x00ff00);
                         pixel.show();
                     }
-                }                
-            }           
-        }
-    }
+                    bleConnect();
+               }
+   
+
  
          
 
@@ -134,4 +128,20 @@ void onDataReceived(const uint8_t *data, size_t len, const BlePeerDevice &peer, 
 
 
     }
+}
+
+void bleConnect(){
+ count = BLE.scan(scanResults, SCAN_RESULT_MAX);
+    if(count > 0){
+        for( i = 0; i < count; i++){
+        BleUuid foundServiceUuid;
+        size_t svcCount = scanResults[i].advertisingData().serviceUUID(&foundServiceUuid,1);
+            if(svcCount > 0 && foundServiceUuid == txUuid){
+                RSSI = scanResults[i].rssi();
+              
+                peer = BLE.connect(scanResults[i].address());        
+            }
+        }
+    }
+
 }

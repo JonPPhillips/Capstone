@@ -1,7 +1,7 @@
 /* 
  * Project Hall effect sensor for SafeChild Car Seat Monitor
  * Author: Jon Phillips
- * Last Updated: 28 November 2023
+ * Last Updated: 30 November 2023
  */
 
 
@@ -35,7 +35,7 @@ void setup() {
     Serial.begin(9600);
     waitFor(Serial.isConnected, 15000);
     BLE.on();
-    BLE.setTxPower(-20);
+    BLE.setTxPower(-30);
     BLE.addCharacteristic(txCharacteristic);
     BleAdvertisingData data;
     data.appendServiceUUID(txUuid);
@@ -52,7 +52,7 @@ void loop() {
     magPres = digitalRead(DETECT);
 
     if(!magPres){
-        pixel.setPixelColor(0,0x00ff00);
+        pixel.setPixelColor(0,0xff0000);
         pixel.show();
         pixel.clear();
         isBuckled = 1;
