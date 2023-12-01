@@ -42,7 +42,7 @@ TCPClient TheClient;
 Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY); 
 Adafruit_MQTT_Publish pubFeedLt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildLight");
 Adafruit_MQTT_Publish pubFeedTxt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildText");
-Adafruit_MQTT_Publish pubFeedTxt2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildText2");
+Adafruit_MQTT_Publish pubFeedFR = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildFobRange");
 const int BUZZER = D16;
 int count;
 int RSSI;
@@ -212,31 +212,39 @@ bool MQTT_ping() {
 }
 
 void publish(){
+    static int counter;
+
+
      if((millis()-lastTime) > 8000) {
         lastTime = millis();
         // Serial.printf("TRIGGERED!!!!!\n");
         if(mqtt.Update()) {
-            pubFeedLt.publish(lastBuckleCheck);
-            Serial.printf("Publishing ---- %i \n",lastBuckleCheck); 
-        }  
+           
+            // Serial.printf("Publishing ---- %i \n",lastBuckleCheck); 
+           
+            
             if(lastBuckleCheck && peer.connected()){
-                pubFeedTxt.publish("Seat Belt Locked");
-               pubFeedTxt2.publish("Key fob in range");
+                pubFeedTxt.publish("Key fob in range, Seat Belt Locked");                
+                pubFeedFR.publish(0);
+                pubFeedLt.publish(0);
             }
             if(!lastBuckleCheck && peer.connected()){
-                pubFeedTxt.publish("Seat Belt not locked");
-                pubFeedTxt2.publish("Key fob in range");
-            }
+                pubFeedTxt.publish("Key fob in range,Seat Belt not locked");                
+                pubFeedFR.publish(0);
+                pubFeedLt.publish(0);
+            }   
             if(!peer.connected() && lastBuckleCheck){
-                pubFeedTxt.publish("DANGER");
-                pubFeedTxt2.publish("KEY FOB OUT OF RANGE AND SEAT BELT LOCKED!!");
+                pubFeedTxt.publish("DANGER!!! IS YOUR CHILD SAFE???");                
+                pubFeedFR.publish(0);
+                pubFeedLt.publish(1);
             }
 
             if(!peer.connected() && !lastBuckleCheck){
-                pubFeedTxt.publish("Seat belt not locked");
-                pubFeedTxt2.publish("Key Fob out of range");
+                pubFeedTxt.publish("Key fob out of range, Seat belt not locked");
+                pubFeedFR.publish(1);
+                pubFeedLt.publish(0);
             }
-   
+        }
      }
 
 
