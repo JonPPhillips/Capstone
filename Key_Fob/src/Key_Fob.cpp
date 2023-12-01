@@ -12,12 +12,14 @@
 #include <Adafruit_MQTT/Adafruit_MQTT.h>
 #include <credentials.h>
 #include <math.h>
-SYSTEM_MODE(AUTOMATIC);
+SYSTEM_MODE(SEMI_AUTOMATIC);
 
 void bleConnect();
 void onDataReceived(const uint8_t *data, size_t len, const BlePeerDevice &peer, void *context);
 void MQTT_connect();
 bool MQTT_ping();
+void publish();
+void alert();
 const int PIXELCOUNT = 1;
 
 Adafruit_NeoPixel pixel ( PIXELCOUNT, SPI1 , WS2812B );
@@ -40,6 +42,7 @@ TCPClient TheClient;
 Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY); 
 Adafruit_MQTT_Publish pubFeedLt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildLight");
 Adafruit_MQTT_Publish pubFeedTxt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildText");
+Adafruit_MQTT_Publish pubFeedTxt2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildText2");
 const int BUZZER = D16;
 int count;
 int RSSI;
@@ -83,47 +86,44 @@ void loop() {
 
        
                 while(peer.connected()){
+                    // Serial.printf("^");
                     pixel.setBrightness(40);
                     pixel.setPixelColor(0,0x0000ff);
                     pixel.show();
                     peer.getCharacteristicByUUID(peerRxCharacteristic, rxUuid);
-                    peer.getCharacteristicByUUID(peerTxCharacteristic, txUuid);
-                   
-                    
+                    peer.getCharacteristicByUUID(peerTxCharacteristic, txUuid); 
+                    publish();                   
                 }
 
                 while(!peer.connected()){
+                    // Serial.printf("*");
                     if(lastBuckleCheck){
                         pixel.setBrightness(100);
                         pixel.setPixelColor(0,0xff0000);
                         pixel.show();
-                        t = millis()/1000.0;
-                        sinWave = 500*sin(2*M_PI*(2)*t)+3000;
-                        tone(BUZZER,sinWave,100);
-                        delay(90);
-                        noTone(BUZZER);                        
+                        // t = millis()/1000.0;
+                        // sinWave = 500*sin(2*M_PI*(2)*t)+3000;
+                        // tone(BUZZER,sinWave,500);
+                        // delay(90);
+                        // noTone(BUZZER);  
+                        alert();                      
                         pixel.clear();
                         pixel.show();
-                        delay(250);
+                        publish();
+                        
 
                     }
                     if(!lastBuckleCheck){
                         pixel.setBrightness(40);
                         pixel.setPixelColor(0,0x00ff00);
                         pixel.show();
+                        publish();
                     }
+                   
                     bleConnect();
                }
    
-    if((millis()-lastTime) > 5000) {
-        lastTime = millis();
-        Serial.printf("TRIGGERED!!!!!\n");
-        if(mqtt.Update()) {
-            pubFeedLt.publish(lastBuckleCheck);
-            Serial.printf("Publishing ---- %i \n",lastBuckleCheck); 
-        } 
    
-     }
  
          
 
@@ -209,4 +209,48 @@ bool MQTT_ping() {
       last = millis();
   }
   return pingStatus;
+}
+
+void publish(){
+     if((millis()-lastTime) > 8000) {
+        lastTime = millis();
+        // Serial.printf("TRIGGERED!!!!!\n");
+        if(mqtt.Update()) {
+            pubFeedLt.publish(lastBuckleCheck);
+            Serial.printf("Publishing ---- %i \n",lastBuckleCheck); 
+        }  
+            if(lastBuckleCheck && peer.connected()){
+                pubFeedTxt.publish("Seat Belt Locked");
+               pubFeedTxt2.publish("Key fob in range");
+            }
+            if(!lastBuckleCheck && peer.connected()){
+                pubFeedTxt.publish("Seat Belt not locked");
+                pubFeedTxt2.publish("Key fob in range");
+            }
+            if(!peer.connected() && lastBuckleCheck){
+                pubFeedTxt.publish("DANGER");
+                pubFeedTxt2.publish("KEY FOB OUT OF RANGE AND SEAT BELT LOCKED!!");
+            }
+
+            if(!peer.connected() && !lastBuckleCheck){
+                pubFeedTxt.publish("Seat belt not locked");
+                pubFeedTxt2.publish("Key Fob out of range");
+            }
+   
+     }
+
+
+}
+
+void alert(){
+    static int i;
+    sinWave=0;
+    for(i=0;i<10;i++){
+        t = millis()/1000.0;
+        sinWave = 500*sin(2*M_PI*(2)*t)+3000;
+        tone(BUZZER,sinWave,500);
+        delay(90);
+        noTone(BUZZER);
+          
+    }
 }
