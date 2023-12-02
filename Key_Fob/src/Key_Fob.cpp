@@ -224,12 +224,12 @@ void publish(){
            
             
             if(lastBuckleCheck && peer.connected()){
-                pubFeedTxt.publish("Key fob in range, Seat Belt Locked");                
+                pubFeedTxt.publish("Car seat in range, Seat Belt Locked");                
                 pubFeedFR.publish(0);
                 pubFeedLt.publish(0);
             }
             if(!lastBuckleCheck && peer.connected()){
-                pubFeedTxt.publish("Key fob in range,Seat Belt not locked");                
+                pubFeedTxt.publish("Car seat in range,Seat Belt not locked");                
                 pubFeedFR.publish(0);
                 pubFeedLt.publish(0);
             }   
@@ -240,7 +240,7 @@ void publish(){
             }
 
             if(!peer.connected() && !lastBuckleCheck){
-                pubFeedTxt.publish("Key fob out of range, Seat belt not locked");
+                pubFeedTxt.publish("Car seat out of range, Seat belt not locked");
                 pubFeedFR.publish(1);
                 pubFeedLt.publish(0);
             }
