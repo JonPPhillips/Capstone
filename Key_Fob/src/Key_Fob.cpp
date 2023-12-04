@@ -13,6 +13,7 @@
 #include <credentials.h>
 #include <math.h>
 SYSTEM_MODE(SEMI_AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
 
 void bleConnect();
 void onDataReceived(const uint8_t *data, size_t len, const BlePeerDevice &peer, void *context);
@@ -21,6 +22,8 @@ bool MQTT_ping();
 void publish();
 void alert();
 const int PIXELCOUNT = 1;
+bool alertOn;
+
 
 Adafruit_NeoPixel pixel ( PIXELCOUNT, SPI1 , WS2812B );
 
@@ -44,6 +47,8 @@ Adafruit_MQTT_Publish pubFeedLt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/fe
 Adafruit_MQTT_Publish pubFeedTxt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildText");
 Adafruit_MQTT_Publish pubFeedFR = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/SafeChildFobRange");
 const int BUZZER = D16;
+const int VIBRATE1 = D1;
+const int VIBRATE2 = D6;
 int count;
 int RSSI;
 int BuckleCheck;
@@ -52,9 +57,7 @@ int timer;
 int sinWave;
 int lastTime;
 float t;
-
-
-
+Thread thread("ALERT",alert);
 
 void setup() {
     Serial.begin(9600);
@@ -71,10 +74,9 @@ void setup() {
     WiFi.connect();
     while(WiFi.connecting()) {
     Serial.printf(".");
+    pinMode(VIBRATE1,OUTPUT);
+    pinMode(VIBRATE2,OUTPUT);
     }
-   
- 
-
 
 }
 
@@ -92,7 +94,8 @@ void loop() {
                     pixel.show();
                     peer.getCharacteristicByUUID(peerRxCharacteristic, rxUuid);
                     peer.getCharacteristicByUUID(peerTxCharacteristic, txUuid); 
-                    publish();                   
+                    publish();    
+                    alertOn=false;               
                 }
 
                 while(!peer.connected()){
@@ -101,12 +104,12 @@ void loop() {
                         pixel.setBrightness(100);
                         pixel.setPixelColor(0,0xff0000);
                         pixel.show();                      
-                        alert();                      
+                        alertOn=true;
+                        // alert();                      
                         pixel.clear();
                         pixel.show();
                         publish();
                         
-
                     }
                     if(!lastBuckleCheck){
                         pixel.setBrightness(40);
@@ -212,8 +215,7 @@ void publish(){
 
      if((millis()-lastTime) > 8000) {
         lastTime = millis();
-        // Serial.printf("TRIGGERED!!!!!\n");
-        if(mqtt.Update()) {
+            if(mqtt.Update()) {
            
             // Serial.printf("Publishing ---- %i \n",lastBuckleCheck); 
            
@@ -228,32 +230,57 @@ void publish(){
                 pubFeedFR.publish(0);
                 pubFeedLt.publish(0);
             }   
+            if(!peer.connected() && !lastBuckleCheck){
+                pubFeedTxt.publish("Car seat out of range, Seat belt not locked");
+                pubFeedFR.publish(1);
+                pubFeedLt.publish(0);
+            }
             if(!peer.connected() && lastBuckleCheck){
                 pubFeedTxt.publish("DANGER!!! IS YOUR CHILD SAFE???");                
                 pubFeedFR.publish(0);
                 pubFeedLt.publish(1);
             }
 
-            if(!peer.connected() && !lastBuckleCheck){
-                pubFeedTxt.publish("Car seat out of range, Seat belt not locked");
-                pubFeedFR.publish(1);
-                pubFeedLt.publish(0);
-            }
+            
         }
      }
 
 
 }
 
+// void alert(){
+//     static int i;
+    
+//     for(i=0;i<20;i++){
+//         t = millis()/1000.0;
+//         sinWave = 500*sin(2*M_PI*(2)*t)+3000;
+//         tone(BUZZER,sinWave,500);
+//         delay(90);
+//         noTone(BUZZER);
+//         digitalWrite(VIBRATE1,HIGH);
+//         digitalWrite(VIBRATE2,HIGH);          
+//     }
+//     digitalWrite(VIBRATE1,LOW);
+//     digitalWrite(VIBRATE2,LOW);
+// }
+
 void alert(){
     static int i;
-    sinWave=0;
-    for(i=0;i<10;i++){
+    
+    while(true){
+    if(alertOn){
         t = millis()/1000.0;
         sinWave = 500*sin(2*M_PI*(2)*t)+3000;
         tone(BUZZER,sinWave,500);
         delay(90);
         noTone(BUZZER);
-          
+        digitalWrite(VIBRATE1,HIGH);
+        digitalWrite(VIBRATE2,HIGH);          
     }
+    else{
+    digitalWrite(VIBRATE1,LOW);
+    digitalWrite(VIBRATE2,LOW);
+    }
+    }
+    
 }
