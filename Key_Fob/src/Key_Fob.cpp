@@ -86,7 +86,7 @@ void loop() {
 
        
                 while(peer.connected()){
-                    // Serial.printf("^");
+                
                     pixel.setBrightness(40);
                     pixel.setPixelColor(0,0x0000ff);
                     pixel.show();
@@ -96,16 +96,11 @@ void loop() {
                 }
 
                 while(!peer.connected()){
-                    // Serial.printf("*");
+                   
                     if(lastBuckleCheck){
                         pixel.setBrightness(100);
                         pixel.setPixelColor(0,0xff0000);
-                        pixel.show();
-                        // t = millis()/1000.0;
-                        // sinWave = 500*sin(2*M_PI*(2)*t)+3000;
-                        // tone(BUZZER,sinWave,500);
-                        // delay(90);
-                        // noTone(BUZZER);  
+                        pixel.show();                      
                         alert();                      
                         pixel.clear();
                         pixel.show();
