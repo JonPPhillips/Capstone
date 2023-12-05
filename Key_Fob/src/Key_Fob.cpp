@@ -56,12 +56,13 @@ bool lastBuckleCheck;
 int timer;
 int sinWave;
 int lastTime;
-float t;
+
 Thread thread("ALERT",alert);
 
 void setup() {
     Serial.begin(9600);
     waitFor(Serial.isConnected, 15000);
+    
     BLE.on();
     peerTxCharacteristic.onDataReceived(onDataReceived, &peerTxCharacteristic);
 
@@ -87,60 +88,47 @@ void loop() {
     bleConnect();
 
        
-                while(peer.connected()){
-                
-                    pixel.setBrightness(40);
-                    pixel.setPixelColor(0,0x0000ff);
-                    pixel.show();
-                    peer.getCharacteristicByUUID(peerRxCharacteristic, rxUuid);
-                    peer.getCharacteristicByUUID(peerTxCharacteristic, txUuid); 
-                    publish();    
-                    alertOn=false;               
-                }
+    while(peer.connected()){
+    
+        pixel.setBrightness(40);
+        pixel.setPixelColor(0,0x0000ff);
+        pixel.show();
+        peer.getCharacteristicByUUID(peerRxCharacteristic, rxUuid);
+        peer.getCharacteristicByUUID(peerTxCharacteristic, txUuid); 
+        publish();    
+        alertOn=false;               
+    }
 
-                while(!peer.connected()){
-                   
-                    if(lastBuckleCheck){
-                        pixel.setBrightness(100);
-                        pixel.setPixelColor(0,0xff0000);
-                        pixel.show();                      
-                        alertOn=true;
-                        // alert();                      
-                        pixel.clear();
-                        pixel.show();
-                        publish();
-                        
-                    }
-                    if(!lastBuckleCheck){
-                        pixel.setBrightness(40);
-                        pixel.setPixelColor(0,0x00ff00);
-                        pixel.show();
-                        publish();
-                    }
-                   
-                    bleConnect();
-               }
-   
-   
- 
-         
-
-   Serial.printf("lastBuckleCheck------ %i\n",lastBuckleCheck);
+    while(!peer.connected()){
+        
+        if(lastBuckleCheck){
+            pixel.setBrightness(100);
+            pixel.setPixelColor(0,0xff0000);
+            pixel.show();                      
+            alertOn=true;
+            pixel.clear();
+            pixel.show();
+            publish();
+            
+        }
+        if(!lastBuckleCheck){
+            pixel.setBrightness(40);
+            pixel.setPixelColor(0,0x00ff00);
+            pixel.show();
+            publish();
+        }
+        
+        bleConnect();
+    } 
  
 }
 
 void onDataReceived(const uint8_t *data, size_t len, const BlePeerDevice &peer, void *context){
  
-
-
-
-
     if(peer.address()[0]==0x05){
 
-    // Serial.printf("Received data from :%02X :%02X :%02X :%02X :%02X :%02X\n", peer.address()[0], peer.address()[1], peer.address()[2], peer.address()[3], peer.address()[4], peer.address()[5]);
-    // Serial.printf("incoming %i\n",atoi((char*)data));
-    Serial.printf("RSSI ---- %i\n",RSSI);
-    BuckleCheck = atoi((char*)data);
+        
+        BuckleCheck = atoi((char*)data);
 
 
        
@@ -155,19 +143,19 @@ void onDataReceived(const uint8_t *data, size_t len, const BlePeerDevice &peer, 
             lastBuckleCheck=false;
         }
 
-        Serial.printf("BuckleCheck ----  %i\n",BuckleCheck);
+        
     }
 }
 
 void bleConnect(){
- count = BLE.scan(scanResults, SCAN_RESULT_MAX);
+    count = BLE.scan(scanResults, SCAN_RESULT_MAX);
     if(count > 0){
         for( i = 0; i < count; i++){
         BleUuid foundServiceUuid;
         size_t svcCount = scanResults[i].advertisingData().serviceUUID(&foundServiceUuid,1);
             if(svcCount > 0 && foundServiceUuid == txUuid){
                 RSSI = scanResults[i].rssi();
-              
+                
                 peer = BLE.connect(scanResults[i].address());        
             }
         }
@@ -248,24 +236,9 @@ void publish(){
 
 }
 
-// void alert(){
-//     static int i;
-    
-//     for(i=0;i<20;i++){
-//         t = millis()/1000.0;
-//         sinWave = 500*sin(2*M_PI*(2)*t)+3000;
-//         tone(BUZZER,sinWave,500);
-//         delay(90);
-//         noTone(BUZZER);
-//         digitalWrite(VIBRATE1,HIGH);
-//         digitalWrite(VIBRATE2,HIGH);          
-//     }
-//     digitalWrite(VIBRATE1,LOW);
-//     digitalWrite(VIBRATE2,LOW);
-// }
-
 void alert(){
     static int i;
+    static float t;
     
     while(true){
     if(alertOn){
