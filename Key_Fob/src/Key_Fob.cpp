@@ -54,7 +54,6 @@ int RSSI;
 int BuckleCheck;
 bool lastBuckleCheck;
 int timer;
-int sinWave;
 int lastTime;
 
 Thread thread("ALERT",alert);
@@ -75,8 +74,7 @@ void setup() {
     WiFi.connect();
     while(WiFi.connecting()) {
     Serial.printf(".");
-    pinMode(VIBRATE1,OUTPUT);
-    pinMode(VIBRATE2,OUTPUT);
+    
     }
 
 }
@@ -102,12 +100,12 @@ void loop() {
     while(!peer.connected()){
         
         if(lastBuckleCheck){
-            pixel.setBrightness(100);
-            pixel.setPixelColor(0,0xff0000);
-            pixel.show();                      
+            // pixel.setBrightness(100);
+            // pixel.setPixelColor(0,0xff0000);
+            // pixel.show();                      
             alertOn=true;
-            pixel.clear();
-            pixel.show();
+            // pixel.clear();
+            // pixel.show();
             publish();
             
         }
@@ -238,15 +236,24 @@ void publish(){
 
 void alert(){
     static int i;
-    static float t;
-    
+    static float t, t2;
+    int sinWave, sinWave2;
+    pinMode(VIBRATE1,OUTPUT);
+    pinMode(VIBRATE2,OUTPUT);
     while(true){
     if(alertOn){
         t = millis()/1000.0;
+        t2 = millis()/1000.0;
         sinWave = 500*sin(2*M_PI*(2)*t)+3000;
+        sinWave2 = 126*sin(2*M_PI*(2)*t2)+127;
         tone(BUZZER,sinWave,500);
+        pixel.setBrightness(sinWave2);
+        pixel.setPixelColor(0,0xff0000);
+        pixel.show();  
         delay(90);
         noTone(BUZZER);
+        pixel.clear();
+        pixel.show();
         digitalWrite(VIBRATE1,HIGH);
         digitalWrite(VIBRATE2,HIGH);          
     }
